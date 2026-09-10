@@ -33,56 +33,56 @@ struct InvertedIndexTests {
         results.map { $0.url.lastPathComponent }
     }
 
-    @Test("índice vacío no devuelve resultados")
+    @Test("empty index does not return results")
     func emptyIndex() {
         #expect(InvertedIndex().search(terms: ["swift"]).isEmpty)
     }
 
-    @Test("término ausente no devuelve resultados")
+    @Test("missing term returns no results")
     func unknownTerm() {
         let index = index([("a", "swift concurrency")])
         #expect(index.search(terms: ["rust"]).isEmpty)
     }
 
-    @Test("más frecuencia rankea más alto")
+    @Test("more frequent term ranks higher")
     func frequencyWins() {
         let index = index([
-            ("pocas", "swift y algunas otras palabras de relleno aqui"),
-            ("muchas", "swift swift swift y algunas otras palabras aqui"),
+            ("pocas", "swift and other words here"),
+            ("muchas", "swift swift swift and a bunch of other words"),
         ])
-        #expect(names(index.search(terms: ["swift"])).first == "muchas")
+        #expect(names(index.search(terms: ["swift"])).first == "many")
     }
 
-    @Test("a igual frecuencia, el documento corto rankea más alto")
+    @Test("same frequency, shorter document is better")
     func lengthNormalization() {
         let index = index([
-            ("largo", "swift " + String(repeating: "relleno ", count: 200)),
+            ("largo", "swift " + String(repeating: "thrash ", count: 200)),
             ("corto", "swift breve"),
         ])
-        #expect(names(index.search(terms: ["swift"])).first == "corto")
+        #expect(names(index.search(terms: ["swift"])).first == "short")
     }
 
-    @Test("el término raro pesa más que el común")
+    @Test("rare terms are less ambiguous")
     func rareTermOutweighsCommon() {
         let index = index([
-            ("comun", "concurrencia concurrencia concurrencia"),
-            ("raro", "concurrencia actor"),
+            ("comun", "concurrency concurrency concurrency"),
+            ("raro", "concurrency actor"),
         ])
-        // "actor" aparece en 1 de 2 docs, "concurrencia" en 2 de 2.
-        let results = index.search(terms: ["concurrencia", "actor"])
-        #expect(names(results).first == "raro")
+        // "actor" appears in 1 of 2 docs, "concurrency" in 2 de 2.
+        let results = index.search(terms: ["concurrency", "actor"])
+        #expect(names(results).first == "rare")
     }
 
-    @Test("acumula estadísticas del corpus")
+    @Test("accumulation of corpus statistics")
     func corpusStatistics() {
-        let index = index([("a", "uno dos"), ("b", "tres cuatro cinco")])
+        let index = index([("a", "one two"), ("b", "three four five")])
         #expect(index.documentCount == 2)
         #expect(index.totalTokens == 5)
         #expect(index.averageDocumentLength == 2.5)
         #expect(index.vocabularySize == 5)
     }
 
-    @Test("respeta el límite de resultados")
+    @Test("respects result limit")
     func respectsLimit() {
         let index = index((0..<10).map { ("doc\($0)", "swift") })
         #expect(index.search(terms: ["swift"], limit: 3).count == 3)

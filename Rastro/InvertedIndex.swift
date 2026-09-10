@@ -122,3 +122,47 @@ extension InvertedIndex {
             .map { SearchResult(url: documents[Int($0.key)].url, score: $0.value) }
     }
 }
+
+extension InvertedIndex {
+
+    func encoded() -> Data {
+        var header = ByteWriter()
+        header.write(SnapshotFormat.magic)
+        header.write(SnapshotFormat.version)
+        header.write(UInt32(documents.count))
+        header.write(UInt32(postings.count))
+        header.write(UInt64(totalTokens))
+
+        var body = ByteWriter()
+        for record in documents {
+            body.write(UInt32(record.tokenCount))
+            body.write(record.url.path(percentEncoded: false))
+        }
+
+        // Sorted so the file is byte-identical for a given index state.
+        let terms = postings.keys.sorted()
+
+        var vocabulary = ByteWriter()
+        var postingsBlock = ByteWriter()
+        var runningOffset: UInt64 = 0
+
+        for term in terms {
+            let list = postings[term]!
+            vocabulary.write(term)
+            vocabulary.write(runningOffset)
+            vocabulary.write(UInt32(list.count))
+
+            for posting in list {
+                postingsBlock.write(posting.document)
+                postingsBlock.write(posting.frequency)
+            }
+            runningOffset += UInt64(list.count * 8)
+        }
+
+        var output = header.data
+        output.append(body.data)
+        output.append(vocabulary.data)
+        output.append(postingsBlock.data)
+        return output
+    }
+}

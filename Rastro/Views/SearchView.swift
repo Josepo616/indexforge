@@ -23,9 +23,9 @@ struct SearchView: View {
 
             List(model.results, id: \.url) { result in
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(result.url.lastPathComponent)
+                    Text(model.highlighted(result.url.lastPathComponent))
                         .font(.body)
-                    Text(result.url.deletingLastPathComponent().path(percentEncoded: false))
+                    Text(model.highlighted(result.url.deletingLastPathComponent().path(percentEncoded: false)))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -21,14 +22,20 @@ final class SearchModel {
 
     private(set) var state: State = .idle
     private(set) var results: [SearchResult] = []
-    private let snapshot = try? SnapshotStore.defaultLocation()
     var query: String = ""
+    var indexedFolder: URL?
 
     private let store = IndexStore()
-    private let tokenizer = Tokenizer()
+    private let tokenizer: Tokenizer
+    private let highlighter: Highlighter
+    private let snapshot = try? SnapshotStore.defaultLocation()
     private var searchTask: Task<Void, Never>?
 
-    var indexedFolder: URL?
+    init() {
+        let tokenizer = Tokenizer()
+        self.tokenizer = tokenizer
+        self.highlighter = Highlighter(tokenizer: tokenizer)
+    }
 
     func restoreSavedFolder() {
         indexedFolder = FolderAccess.restore()
@@ -109,5 +116,9 @@ final class SearchModel {
             guard !Task.isCancelled else { return }
             results = found
         }
+    }
+
+    func highlighted(_ text: String) -> AttributedString {
+        highlighter.highlight(text, matching: tokenizer.tokens(in: query))
     }
 }

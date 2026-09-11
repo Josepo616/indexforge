@@ -1,0 +1,43 @@
+{
+  "configurations" : [
+    {
+      "id" : "35A79B98-C7E2-43CB-B664-932D62B38449",
+      "name" : "Test Scheme Action",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "RASTRO_CORPUS",
+            "value" : "\/Users\/josealvarez\/Developer"
+          }
+        ]
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Rastro.xcodeproj",
+      "identifier" : "246C37F73045FD3800F9DF6F",
+      "name" : "Rastro"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Rastro.xcodeproj",
+        "identifier" : "246C38043045FD3A00F9DF6F",
+        "name" : "RastroTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Rastro.xcodeproj",
+        "identifier" : "246C380E3045FD3A00F9DF6F",
+        "name" : "RastroUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

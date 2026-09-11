@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct RastroApp: App {
+    @State private var model = SearchModel()
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra("Rastro", systemImage: "magnifyingglass") {
+            SearchView(model: model)
+                .frame(width: 420, height: 440)
         }
+        .menuBarExtraStyle(.window)
     }
 }

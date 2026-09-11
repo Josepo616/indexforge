@@ -5,9 +5,9 @@
 //  Created by JoseAlvarez on 9/10/26.
 //
 
-
-import Testing
 import Foundation
+import Testing
+
 @testable import Rastro
 
 @Suite("Snapshot")
@@ -17,12 +17,18 @@ struct SnapshotTests {
 
     private func makeIndex() -> InvertedIndex {
         var index = InvertedIndex()
-        for (name, text) in [("a", "swift concurrency actors"),
-                             ("b", "swift performance tuning"),
-                             ("c", "actors and mailboxes")] {
-            index.insert(DocumentDraft(url: URL(filePath: "/tmp/\(name).txt"),
-                                       text: text,
-                                       tokenizer: tokenizer))
+        for (name, text) in [
+            ("a", "swift concurrency actors"),
+            ("b", "swift performance tuning"),
+            ("c", "actors and mailboxes"),
+        ] {
+            index.insert(
+                DocumentDraft(
+                    url: URL(filePath: "/tmp/\(name).txt"),
+                    text: text,
+                    tokenizer: tokenizer
+                )
+            )
         }
         return index
     }
@@ -56,8 +62,8 @@ struct SnapshotTests {
         try store.write(index)
         let loaded = try store.read()
 
-        #expect(loaded.postings(for: "swift") == index.postings["swift"])
-        #expect(loaded.postings(for: "actors") == index.postings["actors"])
+        #expect(loaded.postings(for: "swift") == index.postingsByTerm["swift"])
+        #expect(loaded.postings(for: "actors") == index.postingsByTerm["actors"])
         #expect(loaded.postings(for: "missing").isEmpty)
     }
 
@@ -86,5 +92,22 @@ struct SnapshotTests {
         #expect(throws: SnapshotError.self) {
             try SnapshotStore(url: url).read()
         }
+    }
+
+    @Test("ranking is identical from memory and from a mapped snapshot")
+    func rankingMatchesAcrossBackings() throws {
+        let index = makeIndex()
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SnapshotStore(url: url)
+        try store.write(index)
+        let loaded = try store.read()
+
+        let fromMemory = index.search(terms: ["swift", "actors"])
+        let fromDisk = loaded.search(terms: ["swift", "actors"])
+
+        #expect(fromMemory.map(\.url) == fromDisk.map(\.url))
+        #expect(fromMemory.count == fromDisk.count)
     }
 }

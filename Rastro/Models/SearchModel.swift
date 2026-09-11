@@ -5,7 +5,6 @@
 //  Created by JoseAlvarez on 9/10/26.
 //
 
-
 import Foundation
 import Observation
 
@@ -22,6 +21,7 @@ final class SearchModel {
 
     private(set) var state: State = .idle
     private(set) var results: [SearchResult] = []
+    private let snapshot = try? SnapshotStore.defaultLocation()
     var query: String = ""
 
     private let store = IndexStore()
@@ -32,6 +32,7 @@ final class SearchModel {
 
     func restoreSavedFolder() {
         indexedFolder = FolderAccess.restore()
+        loadSavedIndex()
     }
 
     func chooseFolder() {
@@ -44,22 +45,51 @@ final class SearchModel {
         }
     }
 
+    private func loadSavedIndex() {
+        guard let snapshot else { return }
+        Task {
+            do {
+                try await store.load(from: snapshot)
+                let statistics = await store.statistics
+                guard statistics.documentCount > 0 else { return }
+                state = .ready(
+                    documents: statistics.documentCount,
+                    terms: statistics.vocabularySize
+                )
+            } catch {
+                // No snapshot yet, or an unreadable one. Indexing will replace it.
+                state = .idle
+            }
+        }
+    }
+
     func buildIndex() async {
         guard let folder = indexedFolder else { return }
         state = .indexing(completed: 0, total: 0)
+        await store.reset()
 
         await FolderAccess.withAccess(to: folder) {
             await IndexBuilder(tokenizer: tokenizer)
-                .build(at: folder, into: store) { [weak self] completed, total in
+                .build(at: folder, into: store) {
+                    [weak self] completed, total in
                     Task { @MainActor in
-                        self?.state = .indexing(completed: completed, total: total)
+                        self?.state = .indexing(
+                            completed: completed,
+                            total: total
+                        )
                     }
                 }
         }
 
+        if let snapshot {
+            try? await store.save(to: snapshot)
+        }
+
         let statistics = await store.statistics
-        state = .ready(documents: statistics.documentCount,
-                       terms: statistics.vocabularySize)
+        state = .ready(
+            documents: statistics.documentCount,
+            terms: statistics.vocabularySize
+        )
     }
 
     /// Debounced so typing does not queue one search per keystroke.

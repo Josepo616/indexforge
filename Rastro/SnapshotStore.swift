@@ -41,7 +41,9 @@ nonisolated struct SnapshotStore: Sendable {
         for _ in 0..<documentCount {
             let tokenCount = Int(try reader.read(UInt32.self))
             let path = try reader.readString()
-            documents.append(DocumentRecord(url: URL(filePath: path), tokenCount: tokenCount))
+            documents.append(
+                DocumentRecord(url: URL(filePath: path), tokenCount: tokenCount)
+            )
         }
 
         var vocabulary: [String: (offset: Int, count: Int)] = [:]
@@ -62,8 +64,19 @@ nonisolated struct SnapshotStore: Sendable {
 
         return PersistedIndex(documents: documents,
                               vocabulary: vocabulary,
-                              postings: mapped,
+                              mappedPostings: mapped,
                               totalTokens: totalTokens)
+    }
+}
+
+extension SnapshotStore {
+
+    /// Inside the sandbox container, not the user's folder.
+    static func defaultLocation() throws -> SnapshotStore {
+        let directory = URL.applicationSupportDirectory.appending(path: "Rastro")
+        try FileManager.default.createDirectory(at: directory,
+                                                withIntermediateDirectories: true)
+        return SnapshotStore(url: directory.appending(path: "index.rastro"))
     }
 }
 
@@ -72,17 +85,16 @@ nonisolated struct PersistedIndex: Sendable {
 
     let documents: [DocumentRecord]
     let vocabulary: [String: (offset: Int, count: Int)]
-    let postings: MappedPostings
+    let mappedPostings: MappedPostings
     let totalTokens: Int
 
-    var documentCount: Int { documents.count }
     var vocabularySize: Int { vocabulary.count }
-    var averageDocumentLength: Double {
-        documents.isEmpty ? 0 : Double(totalTokens) / Double(documents.count)
-    }
+}
 
+extension PersistedIndex: PostingsSource {
     func postings(for term: String) -> [Posting] {
         guard let entry = vocabulary[term] else { return [] }
-        return postings.postings(atByteOffset: entry.offset, count: entry.count)
+        return mappedPostings.postings(atByteOffset: entry.offset,
+                                       count: entry.count)
     }
 }

@@ -7,6 +7,7 @@
 
 
 import Foundation
+import os
 
 actor IndexStore {
 
@@ -31,7 +32,11 @@ actor IndexStore {
     }
 
     func search(terms: [String], limit: Int = 20) -> [SearchResult] {
-        active.search(terms: terms, limit: limit)
+        let signposter = Instrumentation.searching
+        let state = signposter.beginInterval("query", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("query", state) }
+
+        return active.search(terms: terms, limit: limit)
     }
 
     func save(to snapshot: SnapshotStore) throws {

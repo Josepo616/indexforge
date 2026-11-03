@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 nonisolated struct FileCrawler: Sendable {
 
@@ -26,7 +27,13 @@ nonisolated struct FileCrawler: Sendable {
         guard let enumerator = FileManager.default.enumerator(
             at: root,
             includingPropertiesForKeys: keys,
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            options: [.skipsHiddenFiles, .skipsPackageDescendants],
+            errorHandler: { url, error in
+                Instrumentation.logger.warning(
+                    "skipped \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                )
+                return true   // keep walking; one bad directory is not fatal
+            }
         ) else { return [] }
 
         var results: [URL] = []

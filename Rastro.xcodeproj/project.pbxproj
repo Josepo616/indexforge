@@ -27,6 +27,7 @@
 		246C37F83045FD3800F9DF6F /* Rastro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rastro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		246C38053045FD3A00F9DF6F /* RastroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RastroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		246C380F3045FD3A00F9DF6F /* RastroUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RastroUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		24BDBDD53053BD9B005C25D7 /* Rastro.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Rastro.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +76,7 @@
 		246C37EF3045FD3800F9DF6F = {
 			isa = PBXGroup;
 			children = (
+				24BDBDD53053BD9B005C25D7 /* Rastro.xctestplan */,
 				246C37FA3045FD3800F9DF6F /* Rastro */,
 				246C38083045FD3A00F9DF6F /* RastroTests */,
 				246C38123045FD3A00F9DF6F /* RastroUITests */,

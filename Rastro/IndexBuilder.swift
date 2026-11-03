@@ -5,8 +5,8 @@
 //  Created by JoseAlvarez on 9/9/26.
 //
 
-
 import Foundation
+import os
 
 nonisolated struct IndexBuilder: Sendable {
 
@@ -15,24 +15,35 @@ nonisolated struct IndexBuilder: Sendable {
     let concurrency: Int
     let batchSize: Int
 
-    init(tokenizer: Tokenizer = Tokenizer(),
-         crawler: FileCrawler = FileCrawler(),
-         concurrency: Int = ProcessInfo.processInfo.activeProcessorCount,
-         batchSize: Int = 64) {
+    init(
+        tokenizer: Tokenizer = Tokenizer(),
+        crawler: FileCrawler = FileCrawler(),
+        concurrency: Int = ProcessInfo.processInfo.activeProcessorCount,
+        batchSize: Int = 64
+    ) {
         self.tokenizer = tokenizer
         self.crawler = crawler
         self.concurrency = max(1, concurrency)
         self.batchSize = max(1, batchSize)
     }
 
-    func build(at root: URL,
-               into store: IndexStore,
-               onProgress: @Sendable (Int, Int) -> Void = { _, _ in }) async {
+    func build(
+        at root: URL,
+        into store: IndexStore,
+        onProgress: @Sendable (Int, Int) -> Void = { _, _ in }
+    ) async {
 
         let urls = crawler.collectFiles(at: root)
         guard !urls.isEmpty else { return }
 
         let total = urls.count
+        let buildState = Instrumentation.indexing.beginInterval(
+            "build",
+            id: Instrumentation.indexing.makeSignpostID()
+        )
+        defer {
+            Instrumentation.indexing.endInterval("build", buildState)
+        }
         var completed = 0
         var batch: [DocumentDraft] = []
         batch.reserveCapacity(batchSize)
@@ -43,7 +54,9 @@ nonisolated struct IndexBuilder: Sendable {
             // Prime the sliding window.
             for _ in 0..<concurrency {
                 guard let url = iterator.next() else { break }
-                group.addTask { await Self.makeDraft(for: url, tokenizer: tokenizer) }
+                group.addTask {
+                    await Self.makeDraft(for: url, tokenizer: tokenizer)
+                }
             }
 
             for await draft in group {
@@ -60,7 +73,9 @@ nonisolated struct IndexBuilder: Sendable {
 
                 // Refill: one in, one out.
                 if let url = iterator.next() {
-                    group.addTask { await Self.makeDraft(for: url, tokenizer: tokenizer) }
+                    group.addTask {
+                        await Self.makeDraft(for: url, tokenizer: tokenizer)
+                    }
                 }
             }
         }
@@ -73,9 +88,19 @@ nonisolated struct IndexBuilder: Sendable {
     /// `@concurrent` opts this out of the module's MainActor default.
     /// Without it, every worker would queue on the main thread.
     @concurrent
-    private static func makeDraft(for url: URL,
-                                  tokenizer: Tokenizer) async -> DocumentDraft? {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+    private static func makeDraft(
+        for url: URL,
+        tokenizer: Tokenizer
+    ) async -> DocumentDraft? {
+        let signposter = Instrumentation.indexing
+        let state = signposter.beginInterval(
+            "parse",
+            id: signposter.makeSignpostID()
+        )
+        defer { signposter.endInterval("parse", state) }
+
+        guard let text = try? String(contentsOf: url, encoding: .utf8)
+        else {
             return nil
         }
         return DocumentDraft(url: url, text: text, tokenizer: tokenizer)
